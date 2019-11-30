@@ -27,150 +27,64 @@ app.get('/events', eventinfo);
 
 app.get('/movies', moviesinfo);
 
+server.get('/yelp', yelpinfo);
 
-/**************************************/
+
 // Location
-/**************************************/
 function locationinfo(request, response) {
-    console.log('am iniside location');
-  // let locationData = getlocationinfo(request.query.data)
-  // response.status(200).json(`locationData`);
-  getlocationinfo(request.query.data)
-    .then( locationData => response.status(200).json(locationData) );
-}
-function getlocationinfo(city) {
-  // let data = require('./data/geo.json');
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${city}&key=${process.env.GEOCODE_API_KEY}`;
-  // console.log(url );
-  // return new Location(city, data);
-  return superagent.get(url)
-    .then( data => {
-      return new Location(city, data.body);
-    });
-}
-//to test location no local host : http://localhost:3000/location
-function Location(city, data) {
-  this.search_query = city;
-  this.formatted_query = data.results[0].formatted_address;
-  this.latitude = data.results[0].geometry.location.lat;
-  this.longitude = data.results[0].geometry.location.lng;
-}
-/**************************************/
+  const city = request.query.data;
+  
+
+ location.getlocation(city)
+    .then(data => sendJson(data, response))
+    .catch((error) => errorHandler(error, request, Response));
+};
+
 // Weather
-/**************************************/
 function weatherinfo(request, response) {
-//   let weatherData = getweatherinfo(request.query.data);
-//   response.status(200).json(weatherData);
-console.log('request.query : ', request.query);
-  getweatherinfo(request.query.data)
-    .then( weatherData => response.status(200).json(weatherData) );
-}
-function getweatherinfo(query) {
-//   let data = require('./data/darksky.json');
-  //   return data.daily.data.map((day) => {
-  //     return new Weather(day);
-  //   });
-  const url = `https://api.darksky.net/forecast/${process.env.DARKSKY_API_KEY}/${query.latitude},${query.longitude}`;
+  const location = request.query.data;
 
-  return superagent.get(url)
-    .then( data => {
-      let weather = data.body;
-      return weather.daily.data.map( (day) => {
-        return new Weather(day);
-      });
-    });
-}
-//to test weather no local host : http://localhost:3000/weather?data[latitude]=31.9539494&data[longitude]=35.910635
-function Weather(day) {
+ weather(location)
+    .then(summaries => sendJson(summaries, response))
+    .catch((error) => errorHandler(error, request, Response));
+};
 
-  this.forecast = day.summary;
-  this.time = new Date(day.time * 1000).toDateString();
-//   this.sunriseTime =day.sunriseTime ;
-}
-/**************************************/
 // Event
-/**************************************/
 function eventinfo(request, response) {
-  //   let weatherData = getweatherinfo(request.query.data);
-  //   response.status(200).json(weatherData);
-  // console.log('request.query : ', request.query);
-  geteventinfo(request.query.data)
-    .then( eventData => response.status(200).json(eventData) );
-}
-function geteventinfo(query) {
-  //   let data = require('./data/darksky.json');
-  //   return data.daily.data.map((day) => {
-  //     return new Weather(day);
-  //   });
-  const url = `http://api.eventful.com/json/events/search?app_key=${process.env.EVENTBRITE_API_KEY}&location=${query.formatted_query}`;
+  const location = request.query.data;
 
-  return superagent.get(url)
-    .then( data => {
-      // console.log('data : ', data);
-      let list = JSON.parse(data.text);
-      return list.events.event.map( (day) => {
-        return new Event(day);
-      });
-    });
-}
-//to test events no local host : http://localhost:3000/events?data[search_query]=amman&data[formatted_query]=Amman, Jordan&data[latitude]=31.9539494&data[longitude]=35.910635
-function Event(day) { 
-  this.link = day.url;
-  this.name = day.title;
-  this.event_date = day.start_time;
-  this.summary = day.description;
-}
+ events(location)
+    .then(eventslist => sendJson(eventslist, response))
+    .catch((error) => errorHandler(error, request, Response));
+};
+
 //  movies 
 function moviesinfo(request, response) {
-  console.log('am iniside location');
-// let locationData = getlocationinfo(request.query.data)
-// response.status(200).json(`locationData`);
-getMoviesinfo(request.query.data)
-  .then( moviesData => response.status(200).json(moviesData) );
-}
-function getMoviesinfo(query) {
-// let data = require('./data/geo.json');
-const url = `https://api.themoviedb.org/3/movie/550?api_key${process.env.MOVIE_API_KEY}&location=${query.formatted_query}`;
-console.log('queeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery', query);
-// return new Location(city, data);
-// return superagent.get(url)
-//   .then( data => {
-//     return new Location(city, data.body);
-//   });
-}
-//to test location no local host : http://localhost:3000/location
-// function Location(city, data) {
-// this.search_query = city;
-// this.formatted_query = data.results[0].formatted_address;
-// this.latitude = data.results[0].geometry.location.lat;
-// this.longitude = data.results[0].geometry.location.lng;
-// }
+  const location = request.query.data;
 
+ movies(location)
+    .then(list => sendJson(list, response))
+    .catch((error) => errorHandler(error, request, Response));
+};
+// yelp
+function yelpinfo(request, response) {
+  const location = request.query.data;
 
+ yelp(location)
+    .then(reviews => sendJson(reviews, response))
+    .catch((error) => errorHandler(error, request, Response));
+};
 
-
-
-
-
-
-
-/**************************************/
-// else
-/**************************************/
-app.get('/boo',(request,response) =>{
-  throw new Error('something goes wrong ');
-});
-app.use('*', (request, response) => {
-  response.status(404).send('Not Found');
-});
-app.use((error,request,response) => {
-  response.status(500).send(error);
-});
+// Error
+function errorHandler(error, req, Response) {
+    Response.status(500).send(error);
+  }
 
 
 
 client.connect()
 .then( () =>{
     app.listen(PORT, () => console.log(`App Listening on ${PORT}`));
-    });
+    })
+    .catch (err => console.error(err));
 
